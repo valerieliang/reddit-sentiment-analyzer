@@ -1,5 +1,7 @@
 HF_REPO = "valerieliang/reddit-sentiment-model"
 
+import torch
+from dataclasses import dataclass
 from datasets import load_dataset
 from transformers import (
     AutoTokenizer,
@@ -40,7 +42,6 @@ def tokenize(batch):
 
 print("Tokenizing...")
 tokenized = dataset.map(tokenize, batched=True, remove_columns=dataset["train"].column_names)
-tokenized.set_format("torch")
 
 # Model 
 model = AutoModelForSequenceClassification.from_pretrained(
@@ -61,13 +62,22 @@ def compute_metrics(eval_pred):
         average="micro",
     )
 
+@dataclass
+class MultiLabelCollator:
+    def __call__(self, features):
+        return {
+            "input_ids":      torch.tensor([f["input_ids"] for f in features], dtype=torch.long),
+            "attention_mask": torch.tensor([f["attention_mask"] for f in features], dtype=torch.long),
+            "labels":         torch.tensor([f["labels"] for f in features], dtype=torch.float32),
+        }
+
 # Training args 
 args = TrainingArguments(
     output_dir=OUTPUT_DIR,
     num_train_epochs=3,
     per_device_train_batch_size=32,
     per_device_eval_batch_size=64,
-    evaluation_strategy="epoch",
+    eval_strategy="epoch",
     save_strategy="epoch",
     load_best_model_at_end=True,
     metric_for_best_model="f1",
@@ -84,6 +94,7 @@ trainer = Trainer(
     train_dataset=tokenized["train"],
     eval_dataset=tokenized["validation"],
     compute_metrics=compute_metrics,
+    data_collator=MultiLabelCollator(),  
 )
 
 print("Starting training...")
