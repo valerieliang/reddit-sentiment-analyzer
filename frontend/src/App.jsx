@@ -8,12 +8,12 @@ import { analyzeReddit } from './utils/api.js'
 import { getSummaryStats } from './utils/sentiment.js'
 
 export default function App() {
-  const [posts, setPosts]     = useState([])
-  const [stats, setStats]     = useState(null)
-  const [summary, setSummary] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [posts, setPosts]       = useState([])
+  const [stats, setStats]       = useState(null)
+  const [summary, setSummary]   = useState(null)
+  const [loading, setLoading]   = useState(false)
   const [progress, setProgress] = useState(null)
-  const [error, setError]     = useState(null)
+  const [error, setError]       = useState(null)
 
   async function handleSearch({ mode, subreddit, keyword, username, limit }) {
     setLoading(true)
