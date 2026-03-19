@@ -1,34 +1,63 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import SearchForm from './components/SearchForm.jsx'
 import SummaryPanel from './components/SummaryPanel.jsx'
 import SentimentChart from './components/SentimentChart.jsx'
 import PostCard from './components/PostCard.jsx'
-import { fetchRedditPosts } from './utils/reddit.js'
-import { analyzePosts, getSummaryStats } from './utils/sentiment.js'
+import ModelLoader from './components/ModelLoader.jsx'
+import { fetchByKeyword, fetchRecentPosts, fetchUserPosts, fetchUserComments } from './utils/reddit.js'
+import { getSummaryStats } from './utils/sentiment.js'
+import SentimentWorker from './workers/sentiment.worker.js?worker'
 
 export default function App() {
   const [posts, setPosts] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [lastSearch, setLastSearch] = useState({ subreddit: '', keyword: '' })
+  const [modelReady, setModelReady] = useState(false)
+  const [modelProgress, setModelProgress] = useState(0)
+  const [analyzeProgress, setAnalyzeProgress] = useState(null)
+  const workerRef = useRef(null)
 
-  async function handleSearch(subreddit, keyword) {
+  useEffect(() => {
+    const worker = new SentimentWorker()
+    workerRef.current = worker
+
+    worker.onmessage = (e) => {
+      const { type } = e.data
+      if (type === 'MODEL_LOADING') setModelProgress(e.data.progress)
+      if (type === 'MODEL_READY') setModelReady(true)
+      if (type === 'MODEL_ERROR') setError(e.data.error)
+      if (type === 'PROGRESS') setAnalyzeProgress(`Analyzing post ${e.data.current} / ${e.data.total}`)
+      if (type === 'DONE') {
+        const analyzed = e.data.results
+        setStats(getSummaryStats(analyzed))
+        setPosts(analyzed)
+        setLoading(false)
+        setAnalyzeProgress(null)
+      }
+    }
+
+    worker.postMessage({ type: 'LOAD_MODEL' })
+    return () => worker.terminate()
+  }, [])
+
+  async function handleSearch({ mode, subreddit, keyword, username, limit }) {
     setLoading(true)
     setError(null)
     setPosts([])
     setStats(null)
-    setLastSearch({ subreddit, keyword })
 
     try {
-      const raw = await fetchRedditPosts(subreddit, keyword)
-      if (raw.length === 0) throw new Error('No posts found. Try a different keyword or subreddit.')
-      const analyzed = analyzePosts(raw)
-      setStats(getSummaryStats(analyzed))
-      setPosts(analyzed)
+      let raw = []
+      if (mode === 0) raw = await fetchByKeyword(subreddit, keyword, limit)
+      if (mode === 1) raw = await fetchRecentPosts(subreddit, limit)
+      if (mode === 2) raw = await fetchUserPosts(username, limit)
+      if (mode === 3) raw = await fetchUserComments(username, limit)
+
+      if (raw.length === 0) throw new Error('No posts found.')
+      workerRef.current.postMessage({ type: 'ANALYZE', payload: { posts: raw } })
     } catch (err) {
       setError(err.message)
-    } finally {
       setLoading(false)
     }
   }
@@ -36,18 +65,21 @@ export default function App() {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <h1>Reddit Sentiment Analyzer</h1>
-      <p className="subtitle">Search any subreddit for a keyword and see how Reddit feels about it</p>
+      <p className="subtitle">Powered by distilroberta emotion detection</p>
 
-      <SearchForm onSearch={handleSearch} loading={loading} />
+      <ModelLoader progress={modelProgress} ready={modelReady} />
 
-      {error && <p style={{ color: '#f44336', textAlign: 'center', marginBottom: '1rem' }}>{error}</p>}
+      {modelReady && <SearchForm onSearch={handleSearch} loading={loading} modelReady={modelReady} />}
+
+      {error && <p style={{ color: '#f44336', textAlign: 'center' }}>{error}</p>}
+      {analyzeProgress && <p style={{ color: '#888', textAlign: 'center' }}>{analyzeProgress}</p>}
 
       {stats && (
         <>
-          <SummaryPanel stats={stats} subreddit={lastSearch.subreddit} keyword={lastSearch.keyword} />
-          <SentimentChart counts={stats.counts} />
+          <SummaryPanel stats={stats} />
+          <SentimentChart avgEmotions={stats.avgEmotions} />
           <h3 style={{ marginBottom: '1rem', color: '#aaa' }}>Posts ({posts.length})</h3>
-          {posts.map((post) => <PostCard key={post.id} post={post} />)}
+          {posts.map(post => <PostCard key={post.id} post={post} />)}
         </>
       )}
     </div>
