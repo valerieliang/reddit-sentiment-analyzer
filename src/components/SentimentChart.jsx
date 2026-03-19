@@ -4,20 +4,23 @@ import { EMOTION_COLORS } from '../utils/sentiment.js'
 
 export default function SentimentChart({ avgEmotions }) {
   return (
-    <div style={{ marginBottom: '2rem' }}>
-      <h3 style={{ color: '#aaa', marginBottom: '1rem' }}>Average emotion scores</h3>
+    <div className="chart-section">
+      <p className="section-label">— emotion distribution</p>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={avgEmotions} layout="vertical">
-          <XAxis type="number" domain={[0, 1]} stroke="#555"
+          <XAxis type="number" domain={[0, 1]} stroke="#333"
+            tick={{ fill: '#555', fontSize: 11, fontFamily: 'JetBrains Mono' }}
             tickFormatter={v => `${Math.round(v * 100)}%`} />
-          <YAxis type="category" dataKey="label" stroke="#555" width={100} />
+          <YAxis type="category" dataKey="label" stroke="#333" width={110}
+            tick={{ fill: '#888', fontSize: 11, fontFamily: 'JetBrains Mono' }} />
           <Tooltip
-            contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }}
-            formatter={v => `${Math.round(v * 100)}%`}
+            contentStyle={{ background: '#111', border: '1px solid #222', borderRadius: '2px', fontFamily: 'JetBrains Mono', fontSize: 12 }}
+            formatter={v => [`${Math.round(v * 100)}%`]}
+            labelStyle={{ color: '#aaa' }}
           />
-          <Bar dataKey="score" radius={[0, 6, 6, 0]}>
+          <Bar dataKey="score" radius={[0, 2, 2, 0]}>
             {avgEmotions.map(entry => (
-              <Cell key={entry.label} fill={EMOTION_COLORS[entry.label] || '#9e9e9e'} />
+              <Cell key={entry.label} fill={EMOTION_COLORS[entry.label] || '#555'} />
             ))}
           </Bar>
         </BarChart>

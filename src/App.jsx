@@ -23,7 +23,7 @@ export default function App() {
     setSummary(null)
 
     try {
-      setProgress('Fetching posts from Reddit...')
+      setProgress('fetching posts from reddit...')
       let raw = []
       if (mode === 0) raw = await fetchByKeyword(subreddit, keyword, limit)
       if (mode === 1) raw = await fetchRecentPosts(subreddit, limit)
@@ -32,7 +32,7 @@ export default function App() {
 
       if (raw.length === 0) throw new Error('No posts found.')
 
-      setProgress(`Analyzing ${raw.length} posts...`)
+      setProgress(`analyzing ${raw.length} posts...`)
       const data = await analyzeReddit(raw)
 
       setStats(getSummaryStats(data.posts))
@@ -47,20 +47,22 @@ export default function App() {
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h1>Reddit Sentiment Analyzer</h1>
-      <p className="subtitle">Powered by your fine-tuned go_emotions model</p>
+    <div>
+      <header className="app-header">
+        <h1>Reddit<span>.</span>Sentiment</h1>
+        <p className="subtitle">fine-tuned go_emotions · distilbert · 28 labels</p>
+      </header>
 
-      <SearchForm onSearch={handleSearch} loading={loading} modelReady={true} />
+      <SearchForm onSearch={handleSearch} loading={loading} />
 
-      {error    && <p style={{ color: '#f44336', textAlign: 'center' }}>{error}</p>}
-      {progress && <p style={{ color: '#888',    textAlign: 'center' }}>{progress}</p>}
+      {error    && <div className="status-msg error">{error}</div>}
+      {progress && <div className="status-msg loading">⬡ {progress}</div>}
 
       {stats && (
         <>
           <SummaryPanel stats={stats} summary={summary} postCount={posts.length} />
           <SentimentChart avgEmotions={stats.avgEmotions} />
-          <h3 style={{ marginBottom: '1rem', color: '#aaa' }}>Posts ({posts.length})</h3>
+          <p className="posts-header">— {posts.length} posts analyzed</p>
           {posts.map(post => <PostCard key={post.id} post={post} />)}
         </>
       )}
