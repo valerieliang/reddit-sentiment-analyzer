@@ -44,7 +44,6 @@ def analyze_sentiment(texts: list[str]) -> list[list[dict]]:
             logits = sentiment_model(**inputs).logits[0]
         probs = torch.sigmoid(logits).numpy()
 
-        # Return all 28 emotions sorted by score, top 5 only
         emotions = sorted(
             [{"label": EMOTION_LABELS[i], "score": float(probs[i])} for i in range(len(EMOTION_LABELS))],
             key=lambda x: x["score"],
