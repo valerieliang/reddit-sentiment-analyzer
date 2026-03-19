@@ -1,20 +1,22 @@
 import React from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { EMOTION_COLORS } from '../utils/sentiment.js'
 
-const COLORS = { positive: '#4caf50', neutral: '#9e9e9e', negative: '#f44336' }
-
-export default function SentimentChart({ counts }) {
-  const data = Object.entries(counts).map(([name, value]) => ({ name, value }))
+export default function SentimentChart({ avgEmotions }) {
   return (
     <div style={{ marginBottom: '2rem' }}>
-      <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={data}>
-          <XAxis dataKey="name" stroke="#666" />
-          <YAxis stroke="#666" />
-          <Tooltip contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
-          <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-            {data.map((entry) => (
-              <Cell key={entry.name} fill={COLORS[entry.name]} />
+      <h3 style={{ color: '#aaa', marginBottom: '1rem' }}>Average Emotion Scores</h3>
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart data={avgEmotions} layout="vertical">
+          <XAxis type="number" domain={[0, 1]} stroke="#555" tickFormatter={v => `${Math.round(v * 100)}%`} />
+          <YAxis type="category" dataKey="label" stroke="#555" width={70} />
+          <Tooltip
+            contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }}
+            formatter={(v) => `${Math.round(v * 100)}%`}
+          />
+          <Bar dataKey="score" radius={[0, 6, 6, 0]}>
+            {avgEmotions.map((entry) => (
+              <Cell key={entry.label} fill={EMOTION_COLORS[entry.label] || '#9e9e9e'} />
             ))}
           </Bar>
         </BarChart>
