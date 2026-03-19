@@ -1,6 +1,13 @@
 import requests
 
-HEADERS = {"User-Agent": "reddit-sentiment-app/1.0"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+}
+
 BASE = "https://www.reddit.com"
 
 
@@ -21,6 +28,7 @@ def fetch_user_comments(username: str, limit: int = 25):
     r = requests.get(
         f"{BASE}/user/{username}/comments.json?limit={limit}",
         headers=HEADERS,
+        timeout=10,
     )
     r.raise_for_status()
     return [
@@ -39,7 +47,7 @@ def fetch_user_comments(username: str, limit: int = 25):
 
 
 def _parse(url: str):
-    r = requests.get(url, headers=HEADERS)
+    r = requests.get(url, headers=HEADERS, timeout=10)
     r.raise_for_status()
     return [
         {
