@@ -1,32 +1,35 @@
-import Sentiment from 'sentiment'
-
-const analyzer = new Sentiment()
-
-export function analyzePosts(posts) {
-  return posts.map((post) => {
-    const result = analyzer.analyze(`${post.title} ${post.text}`)
-    const label =
-      result.score > 0 ? 'positive'
-      : result.score < 0 ? 'negative'
-      : 'neutral'
-    return { ...post, sentimentScore: result.score, comparative: result.comparative, label }
-  })
+export const EMOTION_COLORS = {
+  joy:      '#f7c948',
+  anger:    '#f44336',
+  sadness:  '#5c9bd6',
+  fear:     '#9c27b0',
+  surprise: '#ff9800',
+  disgust:  '#8bc34a',
+  neutral:  '#9e9e9e',
 }
 
+// Given analyzed posts, compute aggregate emotion averages
 export function getSummaryStats(posts) {
-  const counts = { positive: 0, negative: 0, neutral: 0 }
-  let totalComparative = 0
+  const totals = {}
+  const dominantCounts = {}
 
-  for (const p of posts) {
-    counts[p.label]++
-    totalComparative += p.comparative
+  for (const post of posts) {
+    const top = post.emotions[0].label  // highest scoring emotion
+    dominantCounts[top] = (dominantCounts[top] || 0) + 1
+
+    for (const { label, score } of post.emotions) {
+      totals[label] = (totals[label] || 0) + score
+    }
   }
 
-  const avg = totalComparative / posts.length
-  const overall =
-    counts.positive > counts.negative ? 'Mostly Positive'
-    : counts.negative > counts.positive ? 'Mostly Negative'
-    : 'Mixed / Neutral'
+  const avgEmotions = Object.entries(totals).map(([label, total]) => ({
+    label,
+    score: parseFloat((total / posts.length).toFixed(3)),
+  })).sort((a, b) => b.score - a.score)
 
-  return { counts, avgScore: avg.toFixed(3), overall }
+  return {
+    avgEmotions,
+    dominantCounts,
+    topEmotion: avgEmotions[0]?.label ?? 'neutral',
+  }
 }
