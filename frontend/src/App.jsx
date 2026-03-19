@@ -3,27 +3,38 @@ import SearchForm from './components/SearchForm.jsx'
 import SummaryPanel from './components/SummaryPanel.jsx'
 import SentimentChart from './components/SentimentChart.jsx'
 import PostCard from './components/PostCard.jsx'
+import { fetchByKeyword, fetchRecentPosts, fetchUserPosts, fetchUserComments } from './utils/reddit.js'
 import { analyzeReddit } from './utils/api.js'
 import { getSummaryStats } from './utils/sentiment.js'
 
 export default function App() {
-  const [posts, setPosts] = useState([])
-  const [stats, setStats] = useState(null)
+  const [posts, setPosts]     = useState([])
+  const [stats, setStats]     = useState(null)
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(null)
-  const [error, setError] = useState(null)
+  const [error, setError]     = useState(null)
 
-  async function handleSearch(params) {
+  async function handleSearch({ mode, subreddit, keyword, username, limit }) {
     setLoading(true)
     setError(null)
     setPosts([])
     setStats(null)
     setSummary(null)
-    setProgress('Fetching posts and running analysis...')
 
     try {
-      const data = await analyzeReddit(params)
+      setProgress('Fetching posts from Reddit...')
+      let raw = []
+      if (mode === 0) raw = await fetchByKeyword(subreddit, keyword, limit)
+      if (mode === 1) raw = await fetchRecentPosts(subreddit, limit)
+      if (mode === 2) raw = await fetchUserPosts(username, limit)
+      if (mode === 3) raw = await fetchUserComments(username, limit)
+
+      if (raw.length === 0) throw new Error('No posts found.')
+
+      setProgress(`Analyzing ${raw.length} posts...`)
+      const data = await analyzeReddit(raw)
+
       setStats(getSummaryStats(data.posts))
       setSummary(data.summary)
       setPosts(data.posts)
@@ -42,12 +53,8 @@ export default function App() {
 
       <SearchForm onSearch={handleSearch} loading={loading} modelReady={true} />
 
-      {error && (
-        <p style={{ color: '#f44336', textAlign: 'center', marginBottom: '1rem' }}>{error}</p>
-      )}
-      {progress && (
-        <p style={{ color: '#888', textAlign: 'center', marginBottom: '1rem' }}>{progress}</p>
-      )}
+      {error    && <p style={{ color: '#f44336', textAlign: 'center' }}>{error}</p>}
+      {progress && <p style={{ color: '#888',    textAlign: 'center' }}>{progress}</p>}
 
       {stats && (
         <>
