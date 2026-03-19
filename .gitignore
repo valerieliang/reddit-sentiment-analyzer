@@ -1,3 +1,32 @@
 node_modules
 dist
 .DS_Store
+
+# model training output
+trained-model/
+checkpoint-*/
+
+# huggingface cache
+.cache/
+~/.cache/huggingface/
+
+# python
+__pycache__/
+*.py[cod]
+*.pth
+*.bin
+*.safetensors
+
+# data
+*.arrow
+*.parquet
+data/
+
+# logs
+runs/
+logs/
+wandb/
+
+# jupyter 
+.ipynb_checkpoints/
+*.ipynb
