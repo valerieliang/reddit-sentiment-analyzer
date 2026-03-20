@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models import analyze_sentiment, summarize_posts
+from models import analyze_sentiment, generate_summary
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -38,10 +38,10 @@ def analyze(req: AnalyzeRequest):
     texts = [f"{p['title']} {p['text']}" for p in posts]
 
     emotions = analyze_sentiment(texts)
-    summary = summarize_posts(posts)
-
     for post, emotion_list in zip(posts, emotions):
         post["emotions"] = emotion_list
+
+    summary = generate_summary(posts)
 
     return {
         "posts": posts,
