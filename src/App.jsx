@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import SearchForm from './components/SearchForm.jsx'
-import SummaryPanel from './components/SummaryPanel.jsx'
-import SentimentChart from './components/SentimentChart.jsx'
+import SummaryCard from './components/SummaryCard.jsx'
+import EmotionBars from './components/EmotionBars.jsx'
 import PostCard from './components/PostCard.jsx'
 import { fetchByKeyword, fetchRecentPosts, fetchUserPosts, fetchUserComments } from './utils/reddit.js'
 import { analyzeReddit } from './utils/api.js'
@@ -14,6 +14,7 @@ export default function App() {
   const [loading, setLoading]   = useState(false)
   const [progress, setProgress] = useState(null)
   const [error, setError]       = useState(null)
+  const hasResults = stats !== null
 
   async function handleSearch({ mode, subreddit, keyword, username, limit }) {
     setLoading(true)
@@ -23,13 +24,12 @@ export default function App() {
     setSummary(null)
 
     try {
-      setProgress('fetching posts from reddit...')
+      setProgress('fetching posts...')
       let raw = []
       if (mode === 0) raw = await fetchByKeyword(subreddit, keyword, limit)
       if (mode === 1) raw = await fetchRecentPosts(subreddit, limit)
       if (mode === 2) raw = await fetchUserPosts(username, limit)
       if (mode === 3) raw = await fetchUserComments(username, limit)
-
       if (raw.length === 0) throw new Error('No posts found.')
 
       setProgress(`analyzing ${raw.length} posts...`)
@@ -47,25 +47,28 @@ export default function App() {
   }
 
   return (
-    <div>
-      <header className="app-header">
-        <h1>Reddit<span>.</span>Sentiment</h1>
-        <p className="subtitle">fine-tuned go_emotions · distilbert · 28 labels</p>
-      </header>
+    <div id="root">
+      <div className="app-inner">
+        <div className={`hero ${hasResults ? 'compact' : ''}`}>
+          <div className="hero-eyebrow">hugging face · distilbert · 28 labels</div>
+          <h1><strong>Sentiment Analysis</strong></h1>
+          <p className="hero-sub">analyze any subreddit or user</p>
+        </div>
 
-      <SearchForm onSearch={handleSearch} loading={loading} />
+        <SearchForm onSearch={handleSearch} loading={loading} />
 
-      {error    && <div className="status-msg error">{error}</div>}
-      {progress && <div className="status-msg loading">⬡ {progress}</div>}
+        {error    && <div className="status error">{error}</div>}
+        {progress && <div className="status loading">· {progress}</div>}
 
-      {stats && (
-        <>
-          <SummaryPanel stats={stats} summary={summary} postCount={posts.length} />
-          <SentimentChart avgEmotions={stats.avgEmotions} />
-          <p className="posts-header">— {posts.length} posts analyzed</p>
-          {posts.map(post => <PostCard key={post.id} post={post} />)}
-        </>
-      )}
+        {stats && (
+          <div className="results">
+            <SummaryCard stats={stats} summary={summary} postCount={posts.length} />
+            <EmotionBars avgEmotions={stats.avgEmotions} />
+            <p className="posts-header">{posts.length} posts analyzed</p>
+            {posts.map(post => <PostCard key={post.id} post={post} />)}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
